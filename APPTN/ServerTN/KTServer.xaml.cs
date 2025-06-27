@@ -285,7 +285,8 @@ namespace QuizServer
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    SqlCommand cmd = new SqlCommand("SELECT * FROM Questions ORDER BY Id", conn);
+                    string query = "SELECT TOP 10 * FROM Questions ORDER BY NEWID()";
+                    SqlCommand cmd = new SqlCommand(query, conn);
                     SqlDataReader reader = cmd.ExecuteReader();
 
                     while (reader.Read())
@@ -301,6 +302,10 @@ namespace QuizServer
                         ));
                     }
                 }
+
+                // 👉 Sau khi load, xáo trộn ngẫu nhiên
+                Random rng = new Random();
+                questions = questions.OrderBy(q => rng.Next()).ToList();
             }
             catch (Exception ex)
             {

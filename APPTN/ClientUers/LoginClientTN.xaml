@@ -1,7 +1,7 @@
 ﻿<Window x:Class="QuizClient.LoginClientTN"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="🎮 Đăng nhập chơi trắc nghiệm" Height="350" Width="420"
+        Title="🎮 Đăng nhập chơi trắc nghiệm" Height="400" Width="420"
         Background="#FF1E1E2F" WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
         FontFamily="Segoe UI">
 	<Grid Margin="20">
@@ -47,7 +47,7 @@
 
 				<!-- Nút kết nối -->
 				<StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center">
-					<Button Content="🎯 KẾT NỐI" Width="150" Height="40" FontSize="14"
+					<Button Content="🎯 BẮT ĐẦU " Width="150" Height="40" FontSize="14"
                             Background="#FF3A86FF" Foreground="White" BorderBrush="Transparent"
                             Cursor="Hand" Click="BtnConnect_Click"
                             Margin="0,10,0,0">

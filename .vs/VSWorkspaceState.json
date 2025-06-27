@@ -5,6 +5,6 @@
     "\\APPTN\\ClientUers",
     "\\APPTN\\ServerTN"
   ],
-  "SelectedNode": "\\APPTN\\ClientUers\\MainClient.xaml",
+  "SelectedNode": "\\APPTN\\ClientUers\\MainClient.xaml.cs",
   "PreviewInSolutionExplorer": false
 }

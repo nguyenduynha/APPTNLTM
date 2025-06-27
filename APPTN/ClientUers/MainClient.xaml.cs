@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
 using System.Collections.Generic;
+using System.Windows.Media.Animation;
 
 namespace ClientApp
 {
@@ -17,7 +18,7 @@ namespace ClientApp
         private TcpClient client;
         private NetworkStream stream;
         private StreamReader reader;
-        private StreamWriter writer; // thêm biến writer
+        private StreamWriter writer;
         private DispatcherTimer timer;
         private int timeLeft;
         private string correctAnswer;
@@ -26,6 +27,7 @@ namespace ClientApp
         private Queue<string> questionQueue = new Queue<string>();
         private bool isWaitingResult = false;
         private bool isNextPending = false;
+        private List<(string, int)> rankings = new List<(string, int)>();
 
         public MainClient(string name, string ip, TcpClient tcpClient)
         {
@@ -34,9 +36,8 @@ namespace ClientApp
             serverIP = ip;
             client = tcpClient;
             stream = client.GetStream();
-
             reader = new StreamReader(stream, System.Text.Encoding.UTF8);
-            writer = new StreamWriter(stream, System.Text.Encoding.UTF8) { AutoFlush = true }; // khởi tạo writer
+            writer = new StreamWriter(stream, System.Text.Encoding.UTF8) { AutoFlush = true };
 
             txtUsername.Text = playerName;
             txtServerIP.Text = serverIP;
@@ -44,11 +45,17 @@ namespace ClientApp
             timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             timer.Tick += Timer_Tick;
 
-            txtQuestion.Text = "⏳ Chờ server bắt đầu...";
-            cts = new CancellationTokenSource();
-            Task.Run(() => WaitForServerCommands(cts.Token));
-        }
+            rdoA.Checked += Answer_Checked;
+            rdoB.Checked += Answer_Checked;
+            rdoC.Checked += Answer_Checked;
+            rdoD.Checked += Answer_Checked;
 
+            btnTraLoi.Visibility = Visibility.Collapsed;
+            txtQuestion.Text = "⏳ Chờ server bắt đầu...";
+
+            cts = new CancellationTokenSource();
+            _ = Task.Run(() => WaitForServerCommands(cts.Token));
+        }
 
         private async Task WaitForServerCommands(CancellationToken token)
         {
@@ -57,55 +64,34 @@ namespace ClientApp
                 while (!token.IsCancellationRequested)
                 {
                     string message = await reader.ReadLineAsync();
-                    if (message == null) break; // server đóng kết nối
+                    if (message == null) break;
 
-                    Console.WriteLine("Server gửi: " + message);  // (giúp debug)
-
-                    if (message == "START")
+                    Dispatcher.Invoke(() =>
                     {
-                        Dispatcher.Invoke(() => StartQuizUI());
-                    }
-                    else if (message.StartsWith("END|Đã hết câu hỏi"))
-                    {
-                        Dispatcher.Invoke(() =>
+                        if (message == "START") StartQuizUI();
+                        else if (message.StartsWith("END|Đã hết câu hỏi"))
                         {
                             txtQuestion.Text = "🏁 Quiz kết thúc!";
-                            rdoA.Visibility = rdoB.Visibility = rdoC.Visibility = rdoD.Visibility = Visibility.Collapsed;
-                            btnTraLoi.Visibility = Visibility.Collapsed;
-                            btnNext.Visibility = Visibility.Collapsed;
-                            gridOverlay.Visibility = Visibility.Visible;
-                            txtOverlayResult.Text = "📢 Thông báo:";
-                            txtOverlayResult.Foreground = Brushes.DarkRed;
-                            txtOverlayScore.Text = "Đã hết câu hỏi. Chờ kết quả tổng kết từ server...";
-                        });
-                    }
-                    else if (message.StartsWith("END|"))
-                    {
-                        string resultData = message.Substring(4);
-                        Dispatcher.Invoke(() => EndQuiz(resultData));
-                        break; // kết thúc nhận vì quiz đã xong
-                    }
-                    else if (message.StartsWith("DISCONNECT"))
-                    {
-                        Dispatcher.Invoke(() =>
+                            HideQuizControls();
+                            ShowResultOverlay("📢 Thông báo:", "Đã hết câu hỏi. Chờ kết quả tổng kết từ server...", Brushes.DarkRed);
+                        }
+                        else if (message.StartsWith("END|"))
+                        {
+                            EndQuiz(message.Substring(4));
+                        }
+                        else if (message.StartsWith("DISCONNECT"))
                         {
                             MessageBox.Show("Server đã ngắt kết nối.");
                             Application.Current.Shutdown();
-                        });
-                        break;
-                    }
-                    else
-                    {
-                        Dispatcher.Invoke(() =>
+                        }
+                        else
                         {
-                            if (isWaitingResult)
-                                questionQueue.Enqueue(message);
-                            else
-                                ProcessQuestion(message);
-                        });
-                    }
+                            if (isWaitingResult) questionQueue.Enqueue(message);
+                            else ProcessQuestion(message);
+                        }
+                    });
 
-                    await Task.Delay(50); // tránh vòng lặp quá nhanh
+                    await Task.Delay(50);
                 }
             }
             catch (Exception ex)
@@ -114,11 +100,9 @@ namespace ClientApp
             }
         }
 
-
         private void ProcessQuestion(string data)
         {
             isNextPending = false;
-
             string[] parts = data.Split('|');
             if (parts.Length < 7)
             {
@@ -132,21 +116,15 @@ namespace ClientApp
             rdoC.Content = "C. " + parts[3];
             rdoD.Content = "D. " + parts[4];
             correctAnswer = parts[5];
-
-            if (!int.TryParse(parts[6], out timeLeft))
-                timeLeft = 10;
-
+            timeLeft = int.TryParse(parts[6], out int t) ? t : 10;
             txtTime.Text = $"{timeLeft}s";
 
             rdoA.IsChecked = rdoB.IsChecked = rdoC.IsChecked = rdoD.IsChecked = false;
+            rdoA.Visibility = rdoB.Visibility = rdoC.Visibility = rdoD.Visibility = Visibility.Visible;
             txtResult.Text = "";
             txtResult.Foreground = Brushes.Black;
-
-            rdoA.Visibility = rdoB.Visibility = rdoC.Visibility = rdoD.Visibility = Visibility.Visible;
-            btnTraLoi.Visibility = Visibility.Visible;
-            btnTraLoi.IsEnabled = true;
-            btnNext.Visibility = Visibility.Collapsed;
             gridOverlay.Visibility = Visibility.Collapsed;
+            btnNext.Visibility = Visibility.Collapsed;
 
             timer.Start();
         }
@@ -155,203 +133,54 @@ namespace ClientApp
         {
             timeLeft--;
             txtTime.Text = $"{timeLeft}s";
-
             if (timeLeft <= 0)
             {
                 timer.Stop();
-                btnTraLoi.IsEnabled = false;
-
                 txtResult.Text = "⏰ Hết thời gian!";
                 txtResult.Foreground = Brushes.OrangeRed;
-
                 SendAnswer("", false);
                 ShowResultOverlay("⏰ Hết giờ!", "(0 điểm)", Brushes.OrangeRed);
-
                 isWaitingResult = true;
                 btnNext.Visibility = Visibility.Visible;
             }
         }
 
-        private void BtnTraLoi_Click(object sender, RoutedEventArgs e)
+        private void Answer_Checked(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrEmpty(correctAnswer))
-            {
-                MessageBox.Show("⚠ Chưa có câu hỏi nào để trả lời.");
-                return;
-            }
+            if (isWaitingResult || string.IsNullOrEmpty(correctAnswer)) return;
 
             timer.Stop();
-
             string selected = rdoA.IsChecked == true ? "A" :
                               rdoB.IsChecked == true ? "B" :
                               rdoC.IsChecked == true ? "C" :
                               rdoD.IsChecked == true ? "D" : "";
 
-            if (string.IsNullOrEmpty(selected))
-            {
-                MessageBox.Show("⚠ Vui lòng chọn một đáp án.");
-                timer.Start();
-                return;
-            }
-
             bool isCorrect = selected.Equals(correctAnswer, StringComparison.OrdinalIgnoreCase);
 
             txtResult.Text = isCorrect ? "✅ Chính xác!" : $"❌ Sai! Đáp án đúng là: {correctAnswer}";
             txtResult.Foreground = isCorrect ? Brushes.Green : Brushes.Red;
-            btnTraLoi.IsEnabled = false;
 
             SendAnswer(selected, isCorrect);
-
-            ShowResultOverlay(
-                isCorrect ? "🎉 Đúng rồi!" : "😢 Sai mất rồi!",
-                isCorrect ? "(+10 điểm)" : "(0 điểm)",
-                isCorrect ? Brushes.Green : Brushes.Red
-            );
-
+            ShowResultOverlay(isCorrect ? "🎉 Đúng rồi!" : "😢 Sai mất rồi!", isCorrect ? "(+10 điểm)" : "(0 điểm)", isCorrect ? Brushes.Green : Brushes.Red);
             isWaitingResult = true;
             btnNext.Visibility = Visibility.Visible;
         }
 
+        private void BtnTraLoi_Click(object sender, RoutedEventArgs e)
+        {
+            if (rdoA.IsChecked == true || rdoB.IsChecked == true || rdoC.IsChecked == true || rdoD.IsChecked == true)
+            {
+                Answer_Checked(null, null);
+            }
+            else
+            {
+                MessageBox.Show("❗ Bạn chưa chọn đáp án nào!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
         private void BtnNext_Click(object sender, RoutedEventArgs e)
         {
-            if (isNextPending)
-            {
-                MessageBox.Show("⏳ Đang chờ câu hỏi mới từ server, vui lòng đợi...");
-                return;
-            }
-
-            btnNext.Visibility = Visibility.Collapsed;
-            btnThoat.Visibility = Visibility.Collapsed;    // Ẩn nút Thoát khi còn câu hỏi
-            gridOverlay.Visibility = Visibility.Collapsed;
-            txtResult.Text = "";
-            isWaitingResult = false;
-
-            isNextPending = true;
-            SendNextCommand();
-
-            if (questionQueue.Count > 0)
-            {
-                ProcessQuestion(questionQueue.Dequeue());
-                isNextPending = false;
-            }
-            else
-            {
-                txtQuestion.Text = "⏳ Đang chờ câu hỏi mới từ server...";
-            }
-        }
-
-
-        private void SendAnswer(string answer, bool isCorrect)
-        {
-            try
-            {
-                if (client.Connected)
-                {
-                    string answerLine = $"ANSWER|{playerName}|{answer}|{isCorrect}";
-                    byte[] answerData = System.Text.Encoding.UTF8.GetBytes(answerLine + "\n");
-                    stream.Write(answerData, 0, answerData.Length);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("❌ Lỗi khi gửi kết quả: " + ex.Message);
-            }
-        }
-
-        private void ShowResultOverlay(string message, string scoreText, Brush color)
-        {
-            txtOverlayResult.Text = message;
-            txtOverlayResult.Foreground = color;
-
-            txtOverlayScore.Text = scoreText;
-            txtOverlayScore.Foreground = color;
-
-            gridOverlay.Visibility = Visibility.Visible;
-        }
-
-        private void EndQuiz(string resultData)
-        {
-            timer.Stop();
-            txtQuestion.Text = "🏁 Quiz kết thúc!";
-            rdoA.Visibility = rdoB.Visibility = rdoC.Visibility = rdoD.Visibility = Visibility.Collapsed;
-            btnTraLoi.Visibility = Visibility.Collapsed;
-            btnTraLoi.IsEnabled = false;
-            btnNext.Visibility = Visibility.Collapsed;   // Ẩn nút tiếp theo khi hết câu hỏi
-            btnThoat.Visibility = Visibility.Visible;    // Hiện nút Thoát
-            gridOverlay.Visibility = Visibility.Visible;
-
-            txtOverlayResult.Text = "📊 Kết quả chung:";
-            txtOverlayResult.Foreground = Brushes.DarkBlue;
-
-            if (!string.IsNullOrEmpty(resultData))
-            {
-                List<(string player, int score)> playerScores = new List<(string, int)>();
-
-                string[] players = resultData.Split(',');
-                foreach (string p in players)
-                {
-                    string[] parts = p.Split(':');
-                    if (parts.Length == 2 && int.TryParse(parts[1], out int score))
-                    {
-                        playerScores.Add((parts[0], score));
-                    }
-                }
-
-                playerScores.Sort((a, b) => b.score.CompareTo(a.score));
-
-                string summary = "";
-                foreach (var ps in playerScores)
-                {
-                    summary += "👤 " + ps.player + ": " + ps.score + "\n";
-                }
-
-                txtOverlayScore.Text = summary;
-            }
-            else
-            {
-                txtOverlayScore.Text = "Không có dữ liệu kết quả.";
-            }
-        }
-
-
-
-        private void ShowMessageAndClose(string message)
-        {
-            Dispatcher.Invoke(() =>
-            {
-                MessageBox.Show(message);
-                Close();
-            });
-        }
-
-        protected override void OnClosed(EventArgs e)
-        {
-            cts.Cancel();
-            timer.Stop();
-            base.OnClosed(e);
-        }
-
-        private void SendNextCommand()
-        {
-            try
-            {
-                if (client != null && client.Connected && stream != null)
-                {
-                    string nextCommand = "NEXT\n";
-                    byte[] data = System.Text.Encoding.UTF8.GetBytes(nextCommand);
-                    stream.Write(data, 0, data.Length);
-                    stream.Flush();
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("❌ Lỗi khi gửi lệnh NEXT: " + ex.Message);
-            }
-        }
-
-        private void BtnKetQua_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("📊 Tính năng xem kết quả tổng thể đang phát triển hoặc hiển thị sau khi kết thúc toàn bộ câu hỏi!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+            BtnTiepTuc_Click(sender, e);
         }
 
         private void BtnTiepTuc_Click(object sender, RoutedEventArgs e)
@@ -372,61 +201,157 @@ namespace ClientApp
                 txtQuestion.Text = "⏳ Đang chờ câu hỏi mới từ server...";
                 SendNextCommand();
             }
-
             btnNext.Visibility = Visibility.Collapsed;
         }
 
+        private void SendAnswer(string answer, bool isCorrect)
+        {
+            try
+            {
+                if (client.Connected)
+                    writer.WriteLine($"ANSWER|{playerName}|{answer}|{isCorrect}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("❌ Lỗi khi gửi kết quả: " + ex.Message);
+            }
+        }
+
+        private void EndQuiz(string resultData)
+        {
+            timer.Stop();
+            txtQuestion.Text = "🏁 Quiz kết thúc!";
+            HideQuizControls();
+            btnThoat.Visibility = Visibility.Visible;
+            txtOverlayResult.Text = "📊 Kết quả chung:";
+            txtOverlayResult.Foreground = Brushes.DarkBlue;
+
+            if (!string.IsNullOrEmpty(resultData))
+            {
+                var scores = new List<(string, int)>();
+                foreach (var part in resultData.Split(','))
+                {
+                    var fields = part.Split(':');
+                    if (fields.Length == 2 && int.TryParse(fields[1], out int sc))
+                        scores.Add((fields[0], sc));
+                }
+
+                scores.Sort((a, b) => b.Item2.CompareTo(a.Item2));
+                txtOverlayScore.Text = string.Join("\n", scores.ConvertAll(p => $"👤 {p.Item1}: {p.Item2}"));
+                rankings.Clear();
+                rankings.AddRange(scores);
+            }
+            else
+            {
+                txtOverlayScore.Text = "Không có dữ liệu kết quả.";
+            }
+
+            btnXemKetQua.Visibility = Visibility.Visible;
+        }
+
+        private void BtnKetQua_Click(object sender, RoutedEventArgs e)
+        {
+            if (rankings.Count == 0)
+            {
+                MessageBox.Show("⏳ Chưa có dữ liệu xếp hạng!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            txtOverlayResult.Text = "📊 Bảng xếp hạng:";
+            txtOverlayResult.Foreground = Brushes.DarkBlue;
+            txtOverlayScore.Text = string.Join("\n", rankings.ConvertAll(p => $"👤 {p.Item1}: {p.Item2} điểm"));
+            txtOverlayScore.Foreground = Brushes.Black;
+            gridOverlay.Visibility = Visibility.Visible;
+        }
+
+        private void HideQuizControls()
+        {
+            rdoA.Visibility = rdoB.Visibility = rdoC.Visibility = rdoD.Visibility = Visibility.Collapsed;
+            btnTraLoi.Visibility = Visibility.Collapsed;
+            btnNext.Visibility = Visibility.Collapsed;
+        }
+
+        private void ShowResultOverlay(string message, string scoreText, Brush color)
+        {
+            txtOverlayResult.Text = message;
+            txtOverlayResult.Foreground = color;
+            txtOverlayScore.Text = scoreText;
+            txtOverlayScore.Foreground = color;
+            gridOverlay.Visibility = Visibility.Visible;
+        }
+
+        private void SendNextCommand()
+        {
+            try
+            {
+                writer?.WriteLine("NEXT");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("❌ Lỗi khi gửi lệnh NEXT: " + ex.Message);
+            }
+        }
+
+        private void ShowMessageAndClose(string message)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                MessageBox.Show(message);
+                Close();
+            });
+        }
 
         private void StartQuizUI()
         {
-            // Reset trạng thái giao diện khi START quiz mới
             txtQuestion.Text = "⏳ Đang chờ câu hỏi từ server...";
-
             rdoA.Visibility = rdoB.Visibility = rdoC.Visibility = rdoD.Visibility = Visibility.Visible;
             rdoA.IsChecked = rdoB.IsChecked = rdoC.IsChecked = rdoD.IsChecked = false;
-
-            btnTraLoi.Visibility = Visibility.Visible;
-            btnTraLoi.IsEnabled = true;
-            btnNext.Visibility = Visibility.Collapsed;
-
-            gridOverlay.Visibility = Visibility.Collapsed;
             txtResult.Text = "";
             txtTime.Text = "";
-
             isWaitingResult = false;
             isNextPending = false;
-            questionQueue.Clear();  // Xoá queue cũ nếu có
+            questionQueue.Clear();
+            gridOverlay.Visibility = Visibility.Collapsed;
+
+            PlayFadeIn(txtQuestion);
+            PlayFadeIn(rdoA);
+            PlayFadeIn(rdoB);
+            PlayFadeIn(rdoC);
+            PlayFadeIn(rdoD);
         }
 
         private async void BtnThoat_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                if (writer != null && client != null && client.Connected)
-                {
-                    // Gửi thông báo ngắt kết nối cho server
-                    await writer.WriteLineAsync("QUIT");
-                    await writer.FlushAsync();
-                }
-
-                // Dừng task nhận dữ liệu nếu có, ví dụ:
+                await writer.WriteLineAsync("QUIT");
                 cts?.Cancel();
-
-                // Đóng stream và client
                 reader?.Close();
                 writer?.Close();
                 client?.Close();
             }
-            catch (Exception)
-            {
-                // Có thể log lỗi nếu cần
-            }
+            catch { }
             finally
             {
                 Application.Current.Shutdown();
             }
         }
 
+        private void PlayFadeIn(UIElement element)
+        {
+            if (this.Resources["FadeInStoryboard"] is Storyboard storyboard)
+            {
+                Storyboard clone = storyboard.Clone();
+                Storyboard.SetTarget(clone, element);
+                clone.Begin();
+            }
+        }
 
+        protected override void OnClosed(EventArgs e)
+        {
+            cts?.Cancel();
+            timer?.Stop();
+            base.OnClosed(e);
+        }
     }
 }

@@ -68,3 +68,38 @@ C:\Users\nguyen duy nhat\Downloads\APPTN (2)\APPTN\ClientUers\obj\Debug\ClientUe
 C:\Users\nguyen duy nhat\Downloads\APPTN (2)\APPTN\ClientUers\obj\Debug\ClientUers.csproj.Up2Date
 C:\Users\nguyen duy nhat\Downloads\APPTN (2)\APPTN\ClientUers\obj\Debug\ClientUers.exe
 C:\Users\nguyen duy nhat\Downloads\APPTN (2)\APPTN\ClientUers\obj\Debug\ClientUers.pdb
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\ClientUers.exe.config
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\ClientUers.exe
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\ClientUers.pdb
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\EPPlus.dll
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\EPPlus.Interfaces.dll
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\Microsoft.IO.RecyclableMemoryStream.dll
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\Newtonsoft.Json.dll
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\System.Buffers.dll
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\System.ComponentModel.Annotations.dll
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\System.Memory.dll
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\System.Numerics.Vectors.dll
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\System.Runtime.CompilerServices.Unsafe.dll
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\System.Security.Cryptography.Xml.dll
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\EPPlus.xml
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\Microsoft.IO.RecyclableMemoryStream.xml
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\Newtonsoft.Json.xml
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\System.Buffers.xml
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\System.Memory.xml
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\System.Numerics.Vectors.xml
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\System.Runtime.CompilerServices.Unsafe.xml
+C:\APPTN (2)\APPTN\ClientUers\bin\Debug\System.Security.Cryptography.Xml.xml
+C:\APPTN (2)\APPTN\ClientUers\obj\Debug\ClientUers.csproj.AssemblyReference.cache
+C:\APPTN (2)\APPTN\ClientUers\obj\Debug\MainClient.baml
+C:\APPTN (2)\APPTN\ClientUers\obj\Debug\LoginClientTN.baml
+C:\APPTN (2)\APPTN\ClientUers\obj\Debug\MainClient.g.cs
+C:\APPTN (2)\APPTN\ClientUers\obj\Debug\LoginClientTN.g.cs
+C:\APPTN (2)\APPTN\ClientUers\obj\Debug\App.g.cs
+C:\APPTN (2)\APPTN\ClientUers\obj\Debug\ClientUers_MarkupCompile.cache
+C:\APPTN (2)\APPTN\ClientUers\obj\Debug\ClientUers.g.resources
+C:\APPTN (2)\APPTN\ClientUers\obj\Debug\ClientUers.Properties.Resources.resources
+C:\APPTN (2)\APPTN\ClientUers\obj\Debug\ClientUers.csproj.GenerateResource.cache
+C:\APPTN (2)\APPTN\ClientUers\obj\Debug\ClientUers.csproj.CoreCompileInputs.cache
+C:\APPTN (2)\APPTN\ClientUers\obj\Debug\ClientUers.csproj.Up2Date
+C:\APPTN (2)\APPTN\ClientUers\obj\Debug\ClientUers.exe
+C:\APPTN (2)\APPTN\ClientUers\obj\Debug\ClientUers.pdb
